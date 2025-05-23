@@ -44,7 +44,7 @@ export const ConsultationIcon: React.FC<{ className?: string }> = ({ className =
 );
 
 export const LINKS_CONFIG: LinkItem[] = [
-  { id: 'website', href: 'https://vlad-one.vercel.app/', textKey: 'buttonWebsite', icon: React.createElement(GlobeIcon, null) },
+  { id: 'website', href: 'https://mypro-avrormira.vercel.app/', textKey: 'buttonWebsite', icon: React.createElement(GlobeIcon, null) },
   { id: 'telegram', href: 'https://t.me/bonez_mc187', textKey: 'buttonTelegram', icon: React.createElement(TelegramIcon, null) },
   { id: 'youtube', href: 'https://www.youtube.com/@RealDiamondLife', textKey: 'buttonYouTube', icon: React.createElement(YouTubeIcon, null) },
   { id: 'instagram', href: 'https://www.instagram.com/digital_expert_ee?igsh=MXA0cDVvdHVic25mNA==', textKey: 'buttonInstagram', icon: React.createElement(InstagramIcon, null) },
