@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai"; // Import GoogleGenAI
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useLocalization } from '../hooks/useLocalization'; 
 import { LanguageCode } from '../types'; 
 
 const ChatModal: React.FC = () => {
   const {
-    isChatOpen,
     closeChat,
     messages,
     sendMessage,
@@ -17,77 +15,64 @@ const ChatModal: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  const apiKey = process.env.API_KEY;
-  const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(scrollToBottom, [messages, isExpertTyping]);
 
-  if (!isChatOpen) {
-    return null;
-  }
+  // Predefined responses based on language
+  const getPredefinedResponse = useCallback((language: LanguageCode): string => {
+    const responses = {
+      [LanguageCode.EN]: [
+        "I'm here to help with your digital needs. How can I assist you today?",
+        "For website development, I recommend starting with a clear plan and user-friendly design.",
+        "For advertising, consider your target audience and platform selection carefully.",
+        "Business automation can save you time and reduce errors. What process would you like to automate?",
+        "I specialize in digital solutions. Could you tell me more about your project?"
+      ],
+      [LanguageCode.RU]: [
+        "Я здесь, чтобы помочь с вашими цифровыми потребностями. Чем я могу помочь?",
+        "Для разработки веб-сайта рекомендую начать с четкого плана и удобного дизайна.",
+        "Для рекламы тщательно продумайте целевую аудиторию и выбор платформы.",
+        "Автоматизация бизнеса может сэкономить ваше время и сократить количество ошибок. Какой процесс вы хотели бы автоматизировать?",
+        "Я специализируюсь на цифровых решениях. Не могли бы вы рассказать подробнее о вашем проекте?"
+      ],
+      [LanguageCode.FI]: [
+        "Olen täällä auttamassa digitarpeissasi. Kuinka voin auttaa?",
+        "Verkkosivun kehittämiseen suosittelen aloittamaan selkeästi suunnitellulla ja käyttäjäystävällisellä suunnittelulla.",
+        "Mainontaa ajatellen kannattaa harkita tarkasti kohderyhmää ja alustan valintaa.",
+        "Liiketoiminnan automatisointi voi säästää aikaasi ja vähentää virheitä. Minkä prosessin haluaisit automatisoida?",
+        "Erityiskiintymykseni ovat digitaaliset ratkaisut. Voisitko kertoa lisää projektistasi?"
+      ],
+      [LanguageCode.ET]: [
+        "Olen siin, et aidata teid digivajadustes. Kuidas saan teid aidata?",
+        "Veebilehe arendamiseks soovitan alustada selge plaani ja kasutajasõbraliku disainiga.",
+        "Reklaami jaoks kaaluge hoolikalt sihtrühma ja platvormi valikut.",
+        "Äriprotsesside automatiseerimine võib säästa teie aega ja vähendada vigu. Millist protsessi soovite automatiseerida?",
+        "Minu erialaks on digilahendused. Kas saaksite oma projektist lähemalt rääkida?"
+      ]
+    };
 
-  const getLanguageNameForAI = (code: LanguageCode): string => {
-    switch (code) {
-      case LanguageCode.EN: return "English";
-      case LanguageCode.RU: return "Russian";
-      case LanguageCode.FI: return "Finnish";
-      case LanguageCode.ET: return "Estonian";
-      default: return "English";
-    }
-  };
+    const languageResponses = responses[language] || responses[LanguageCode.EN];
+    return languageResponses[Math.floor(Math.random() * languageResponses.length)];
+  }, []);
 
   const handleSendMessage = async () => {
-    if (inputText.trim() && ai) {
-      const userMessageText = inputText.trim();
-      sendMessage(userMessageText, 'user');
-      setInputText('');
-      setExpertTyping(true);
+    const userMessageText = inputText.trim();
+    if (!userMessageText) return;
 
-      try {
-        const languageName = getLanguageNameForAI(currentLanguageCode);
-        const systemInstruction = `You are Digital Expert, a helpful AI assistant providing a free consultation. Your expertise includes creating websites, setting up advertising, and business automation. Respond in ${languageName}. Keep your answers concise, professional, and directly helpful to the user's query. If the query is unrelated to your digital expertise, politely state your specialization.`;
-        
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-04-17',
-          contents: userMessageText, 
-          config: {
-            systemInstruction: systemInstruction,
-          }
-        });
+    // Add user message
+    sendMessage(userMessageText, 'user');
+    setInputText('');
+    setExpertTyping(true);
 
-        const expertResponseText = response.text;
-        if (expertResponseText) {
-          sendMessage(expertResponseText, 'expert');
-        } else {
-          sendMessage(translations.chatErrorReply || "Sorry, I couldn't get a response.", 'expert');
-        }
-      } catch (error: any) {
-        let errorMessage = translations.chatErrorReply;
-        const errorString = error?.toString ? error.toString() : "";
-        if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
-          // Rate limit error is handled for the user; specific console log for this case was removed to align with user's provided file.
-          errorMessage = translations.chatRateLimitError;
-        } else {
-          console.error("Error calling Gemini API in ChatModal:", error);
-        }
-        sendMessage(errorMessage || "An error occurred while generating a response.", 'expert');
-      } finally {
-        setExpertTyping(false);
-      }
-    } else if (inputText.trim() && !ai) {
-       const userMessageText = inputText.trim();
-       sendMessage(userMessageText, 'user');
-       setInputText('');
-       setExpertTyping(true);
-       setTimeout(() => {
-        sendMessage("AI features are currently unavailable. This is a simulated expert reply.", 'expert');
-        setExpertTyping(false);
-       }, 1000);
-    }
+    // Simulate typing delay
+    setTimeout(() => {
+      const response = getPredefinedResponse(currentLanguageCode);
+      sendMessage(response, 'expert');
+      setExpertTyping(false);
+    }, 800);
   };
   
   return React.createElement(
